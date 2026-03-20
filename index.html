@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Inwentarz Harcówki IV SH</title>
+<meta name="theme-color" content="#1A3C34">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Harcówka IV SH">
+<meta name="description" content="Inwentarz harcówki IV Szczepu Harcerskiego">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+:root {
+  --dk:#1A3C34; --mg:#2D6A4F; --lg:#52B788; --pg:#D8F3DC;
+  --white:#fff; --gl:#F8F9FA; --gm:#DEE2E6; --tx:#212529;
+  --A:#2980B9; --B:#8E44AD; --C:#C0392B; --D:#E67E22; --E:#27AE60; --F:#16A085;
+  --safe-top: env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--gl);color:var(--tx);min-height:100vh}
+
+/* TOAST */
+#toast{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  background:#333;color:#fff;padding:9px 18px;border-radius:20px;
+  font-size:12px;z-index:999;white-space:nowrap;
+  opacity:0;transition:opacity .3s;pointer-events:none;
+}
+#toast.show{opacity:1}
+
+/* OFFLINE */
+#offline-bar{
+  display:none;background:#e74c3c;color:#fff;text-align:center;
+  font-size:11px;padding:4px;position:sticky;top:0;z-index:200;
+}
+body.offline #offline-bar{display:block}
+
+/* HEADER */
+header{
+  background:linear-gradient(135deg,var(--dk),var(--mg));
+  color:#fff;padding:0 14px;padding-top:var(--safe-top);
+  display:flex;align-items:center;gap:10px;
+  height:calc(58px + var(--safe-top));
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 12px rgba(0,0,0,.25);
+}
+.menu-btn{
+  display:none;background:rgba(255,255,255,.15);border:none;color:#fff;
+  border-radius:8px;padding:6px 9px;font-size:18px;cursor:pointer;
+}
+@media(max-width:640px){.menu-btn{display:flex;align-items:center;justify-content:center}}
+.logo{font-size:22px}
+header h1{font-size:13px;font-weight:700;line-height:1.3}
+header p{font-size:10px;opacity:.6}
+.spacer{flex:1}
+.hbadge{background:rgba(255,255,255,.15);border-radius:14px;padding:3px 9px;font-size:11px;font-weight:600}
+.admin-btn{
+  background:rgba(255,255,255,.15);border:none;color:#fff;
+  border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;
+  cursor:pointer;white-space:nowrap;
+}
+#sync-indicator{font-size:10px;opacity:.6;display:none}
+
+/* LAYOUT */
+.layout{display:flex;height:calc(100vh - 58px - var(--safe-top))}
+
+/* SIDEBAR */
+.sidebar{
+  width:255px;background:var(--white);
+  border-right:1px solid var(--gm);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
+  transition:transform .25s;
+}
+@media(max-width:640px){
+  .sidebar{
+    position:fixed;top:calc(58px + var(--safe-top));left:0;
+    height:calc(100vh - 58px - var(--safe-top));
+    transform:translateX(-100%);z-index:90;width:82vw;max-width:300px;
+    box-shadow:4px 0 20px rgba(0,0,0,.15);
+  }
+  .sidebar.open{transform:translateX(0)}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:89}
+  .overlay.show{display:block}
+}
+.sidebar-top{padding:11px;border-bottom:1px solid var(--gm)}
+.search-box{
+  width:100%;padding:8px 10px;border:1.5px solid var(--gm);
+  border-radius:8px;font-size:14px;outline:none;background:var(--gl);
+  transition:border-color .2s;
+}
+.search-box:focus{border-color:var(--lg);background:#fff}
+.filter-row{display:flex;gap:4px;margin-top:7px;flex-wrap:wrap}
+.fbtn{
+  padding:4px 8px;border-radius:10px;border:1.5px solid var(--gm);
+  font-size:10px;font-weight:700;cursor:pointer;background:var(--white);
+  transition:all .15s;white-space:nowrap;touch-action:manipulation;
+}
+.fbtn.active{color:#fff!important;border-color:transparent}
+.fbtn[data-z="all"]{color:var(--dk)} .fbtn[data-z="all"].active{background:var(--dk)}
+.fbtn[data-z="A"]{color:var(--A)}   .fbtn[data-z="A"].active{background:var(--A)}
+.fbtn[data-z="B"]{color:var(--B)}   .fbtn[data-z="B"].active{background:var(--B)}
+.fbtn[data-z="C"]{color:var(--C)}   .fbtn[data-z="C"].active{background:var(--C)}
+.fbtn[data-z="D"]{color:var(--D)}   .fbtn[data-z="D"].active{background:var(--D)}
+.fbtn[data-z="E"]{color:var(--E)}   .fbtn[data-z="E"].active{background:var(--E)}
+.fbtn[data-z="F"]{color:var(--F)}   .fbtn[data-z="F"].active{background:var(--F)}
+
+.item-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.item-entry{
+  padding:9px 13px;cursor:pointer;border-bottom:1px solid var(--gl);
+  transition:background .1s;display:flex;align-items:center;gap:9px;
+}
+.item-entry:active,.item-entry.active{background:var(--pg)}
+.item-entry.active{border-left:3px solid var(--lg)}
+.zone-pill{
+  width:28px;height:28px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;color:#fff;flex-shrink:0;
+}
+.item-info .iname{font-size:12px;font-weight:600;line-height:1.3}
+.item-info .imeta{font-size:10px;color:#888;margin-top:1px}
+.no-res{padding:20px;text-align:center;color:#bbb;font-size:12px}
+
+/* LOADING */
+.loading-screen{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;gap:14px;color:#888;font-size:13px;
+}
+.spinner{
+  width:36px;height:36px;border:3px solid var(--gm);
+  border-top-color:var(--lg);border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:18px;-webkit-overflow-scrolling:touch}
+
+/* OVERVIEW */
+.overview{max-width:840px}
+.overview h2{font-size:16px;font-weight:700;color:var(--dk);margin-bottom:3px}
+.overview .sub{font-size:11px;color:#999;margin-bottom:14px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-bottom:16px}
+.scard{background:var(--white);border-radius:10px;padding:12px 10px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.07);border-top:3px solid var(--lg)}
+.scard .sv{font-size:22px;font-weight:800}
+.scard .sl{font-size:10px;color:#666;margin-top:2px}
+.zones-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px}
+@media(max-width:580px){.zones-grid{grid-template-columns:1fr 1fr}}
+.zone-card{
+  background:var(--white);border-radius:11px;padding:12px;
+  box-shadow:0 1px 4px rgba(0,0,0,.07);cursor:pointer;
+  border-left:4px solid;touch-action:manipulation;
+  transition:transform .15s;
+}
+.zone-card:active{transform:scale(.98)}
+.zone-card h3{font-size:12px;font-weight:800;margin-bottom:3px}
+.zone-card .zdesc{font-size:10px;color:#666;margin-bottom:6px}
+.zip{font-size:10px;color:#555;padding:2px 0;border-bottom:1px solid #f0f0f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* DETAIL */
+.detail-card{background:var(--white);border-radius:13px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden;max-width:560px}
+.dc-header{color:#fff;padding:18px 20px;display:flex;align-items:center;gap:13px}
+.dc-icon{width:50px;height:50px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,255,255,.2);flex-shrink:0}
+.dc-title .dname{font-size:17px;font-weight:700}
+.dc-title .dlp{font-size:10px;opacity:.6;margin-top:2px}
+.dc-body{padding:16px 20px}
+.info-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+.chip{display:flex;align-items:center;gap:5px;background:var(--gl);border-radius:7px;padding:7px 10px}
+.chip .ci{font-size:16px}
+.chip .clbl{font-size:9px;color:#888;display:block}
+.chip .cval{font-size:12px;font-weight:700}
+.lok-trail{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.lok-seg{padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;color:#fff}
+.lok-arrow{color:#ccc;font-size:11px}
+.uwagi-box{background:#FFFBEA;border:1px solid #F0D000;border-radius:7px;padding:9px 12px;font-size:12px;color:#666;display:flex;gap:7px}
+
+/* EDIT BUTTONS on detail */
+.detail-actions{display:flex;gap:8px;margin-top:14px}
+.btn{padding:8px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-edit{background:var(--dk);color:#fff}
+.btn-del{background:#fee;color:#c0392b;border:1px solid #fcc}
+
+/* TABS */
+.main-tabs{display:flex;margin-bottom:14px;border-bottom:2px solid var(--gm)}
+.mtab{padding:8px 13px;cursor:pointer;font-size:12px;font-weight:600;border:none;background:none;color:#888;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.mtab.active{color:var(--dk);border-bottom-color:var(--dk)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* TABLE */
+.inv-table{width:100%;border-collapse:collapse;font-size:11px}
+.inv-table th{background:var(--dk);color:#fff;padding:7px 8px;text-align:left;font-size:10px;position:sticky;top:0}
+.inv-table td{padding:6px 8px;border-bottom:1px solid var(--gl)}
+.inv-table tr:hover td{background:var(--pg);cursor:pointer}
+.inv-table tr.alt td{background:#fafafa}
+
+/* ── ADMIN MODAL ── */
+.modal-bg{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
+  z-index:300;align-items:center;justify-content:center;padding:16px;
+}
+.modal-bg.open{display:flex}
+.modal{
+  background:#fff;border-radius:16px;width:100%;max-width:520px;
+  max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.3);
+}
+.modal-header{
+  background:linear-gradient(135deg,var(--dk),var(--mg));
+  color:#fff;padding:18px 20px;border-radius:16px 16px 0 0;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-header h2{font-size:15px;font-weight:700}
+.modal-close{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:4px 10px;font-size:16px;cursor:pointer}
+.modal-body{padding:20px}
+.form-row{margin-bottom:14px}
+.form-row label{display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.form-row input,.form-row select,.form-row textarea{
+  width:100%;padding:9px 11px;border:1.5px solid var(--gm);border-radius:8px;
+  font-size:13px;outline:none;transition:border-color .2s;font-family:inherit;
+}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--lg)}
+.form-row textarea{resize:vertical;min-height:60px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-footer{padding:0 20px 20px;display:flex;gap:8px;justify-content:flex-end}
+.btn-primary{background:var(--dk);color:#fff;padding:9px 20px;border-radius:9px;border:none;font-size:13px;font-weight:700;cursor:pointer}
+.btn-secondary{background:var(--gl);color:var(--tx);padding:9px 16px;border-radius:9px;border:1px solid var(--gm);font-size:13px;cursor:pointer}
+.btn-danger{background:#c0392b;color:#fff;padding:9px 16px;border-radius:9px;border:none;font-size:13px;font-weight:700;cursor:pointer}
+
+/* LOGIN FORM */
+.login-form{padding:30px 20px;text-align:center}
+.login-form .lock{font-size:48px;margin-bottom:12px}
+.login-form h3{font-size:16px;font-weight:700;color:var(--dk);margin-bottom:6px}
+.login-form p{font-size:12px;color:#888;margin-bottom:20px}
+.login-form input{
+  width:100%;padding:10px 14px;border:2px solid var(--gm);border-radius:9px;
+  font-size:15px;text-align:center;letter-spacing:4px;outline:none;margin-bottom:12px;
+  transition:border-color .2s;
+}
+.login-form input:focus{border-color:var(--lg)}
+.login-form .err{color:#c0392b;font-size:12px;margin-top:6px;display:none}
+
+/* CONFIG HINT */
+.config-banner{
+  background:#fff8e1;border:1px solid #ffe082;border-radius:10px;
+  padding:12px 14px;margin-bottom:16px;font-size:12px;color:#666;
+  display:none;
+}
+.config-banner.show{display:block}
+.config-banner strong{color:#e67e22}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--gm);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="offline-bar">📵 Tryb offline — wyświetlam ostatnio zapisane dane</div>
+<div id="toast"></div>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- ADMIN MODAL -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal" id="modal">
+    <!-- content injected by JS -->
+  </div>
+</div>
+
+<header>
+  <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+  <div class="logo">🏕️</div>
+  <div>
+    <h1>Inwentarz Harcówki IV SH</h1>
+    <p id="data-info">ładowanie…</p>
+  </div>
+  <div class="spacer"></div>
+  <span id="sync-indicator">⟳ zapisuję…</span>
+  <button class="admin-btn" onclick="openAdmin()">⚙️ Edytuj</button>
+  <div class="hbadge" id="count-badge">…</div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <input class="search-box" type="search" placeholder="🔍 Szukaj…" id="search" autocomplete="off"/>
+      <div class="filter-row">
+        <button class="fbtn active" data-z="all">Wszystko</button>
+        <button class="fbtn" data-z="A">A 📚</button>
+        <button class="fbtn" data-z="B">B ✏️</button>
+        <button class="fbtn" data-z="C">C 🧭</button>
+        <button class="fbtn" data-z="D">D ⚽</button>
+        <button class="fbtn" data-z="E">E 👕</button>
+        <button class="fbtn" data-z="F">F 🍽️</button>
+      </div>
+    </div>
+    <div class="item-list" id="item-list">
+      <div class="loading-screen"><div class="spinner"></div>Ładuję dane…</div>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+    <div class="loading-screen"><div class="spinner"></div>Ładuję inwentarz…</div>
+  </main>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// KONFIGURACJA — uzupełnij po wdrożeniu
+// ══════════════════════════════════════════════════════
+const CONFIG = {
+  // GitHub repo: "twoja-nazwa/harcowka-ivsh"
+  GITHUB_REPO: 'TWOJA-NAZWA/harcowka-ivsh',
+  // Plik z danymi w repozytorium
+  DATA_FILE: 'data.json',
+  // Hasło do panelu edycji (zmień na własne!)
+  ADMIN_PASSWORD: 'harcowka2025',
+};
+// ══════════════════════════════════════════════════════
+
+const ZONES = {
+  A:{label:'Strefa A',desc:'Książki, kroniki, gry',            color:'#2980B9',bg:'#D6EAF8',icon:'📚'},
+  B:{label:'Strefa B',desc:'Materiały plastyczne i biurowe',   color:'#8E44AD',bg:'#EAD9F5',icon:'✏️'},
+  C:{label:'Strefa C',desc:'Wyposażenie terenowe i strzeleckie',color:'#C0392B',bg:'#FAD9D5',icon:'🧭'},
+  D:{label:'Strefa D',desc:'Gry, sport i rękodzieło',          color:'#E67E22',bg:'#FAE9D3',icon:'⚽'},
+  E:{label:'Strefa E',desc:'Umundurowanie i proporce',         color:'#27AE60',bg:'#D4EFDF',icon:'👕'},
+  F:{label:'Strefa F',desc:'Akcje zarobkowe',                  color:'#16A085',bg:'#D0EDE8',icon:'🍽️'},
+};
+
+const ICONS={
+  'kronika':'📖','książk':'📚','śpiewnik':'🎵','gra':'🎲','mapa':'🗺️',
+  'papier':'📄','klej':'🖇️','nożyczki':'✂️','taśma':'📦','zapałki':'🔥',
+  'płótna':'🎨','farby':'🎨','kreda':'🖊️','kompas':'🧭','lornetk':'🔭',
+  'flaga':'🚩','kamizelk':'🦺','łuk':'🏹','strzał':'🏹','pistol':'🔫',
+  'nóż':'🔪','slackline':'🪢','sznurek':'🪢','paracord':'🪢',
+  'piłk':'⚽','rakiet':'🏸','frisbee':'🥏','tamburyn':'🥁','klakson':'📣','kręgle':'🎳',
+  'mundur':'👕','koszulk':'👕','nakrycie':'🧢','proporce':'🏳️',
+  'talerz':'🍽️','kubek':'☕','serwetki':'🧻','sztućce':'🍴',
+  'geocaching':'📦','lightstick':'💡','proca':'🏹','tracze':'🎯',
+  'drut':'🪡','nitk':'🧵','szyci':'🧵','wełna':'🧶','balony':'🎈','tasiemki':'🎀',
+};
+function ico(name){const n=name.toLowerCase();for(const[k,v]of Object.entries(ICONS))if(n.includes(k))return v;return'📦'}
+const zc=z=>ZONES[z]?.color||'#999';
+
+// ── STATE ─────────────────────────────────────────────
+let DATA = [];
+let activeFilter='all', activeId=null, fileSHA='', adminUnlocked=false, githubToken='';
+
+// ── TOAST ─────────────────────────────────────────────
+function toast(msg, dur=2500){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+// ── OFFLINE ───────────────────────────────────────────
+window.addEventListener('online',  ()=>document.body.classList.remove('offline'));
+window.addEventListener('offline', ()=>document.body.classList.add('offline'));
+
+// ── SERVICE WORKER ────────────────────────────────────
+if('serviceWorker' in navigator){
+  const sw=`const C='harcowka-v2';
+self.addEventListener('install',e=>{self.skipWaiting()});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))));self.clients.claim()});
+self.addEventListener('fetch',e=>{
+  if(e.request.url.includes('api.github.com')||e.request.url.includes('raw.githubusercontent.com'))return;
+  e.respondWith(fetch(e.request).then(r=>{const cl=r.clone();caches.open(C).then(c=>c.put(e.request,cl));return r}).catch(()=>caches.match(e.request)));
+});`;
+  const blob=new Blob([sw],{type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob),{scope:'./'}).catch(()=>{});
+}
+
+// ── GITHUB API ────────────────────────────────────────
+async function fetchData(){
+  // 1) Fetch live data via raw.githubusercontent.com (fast, no auth needed for public repos)
+  //    Cache-busting param ensures we always get the latest version.
+  const rawUrl=`https://raw.githubusercontent.com/${CONFIG.GITHUB_REPO}/main/${CONFIG.DATA_FILE}?_=${Date.now()}`;
+  try{
+    const r=await fetch(rawUrl);
+    if(!r.ok) throw new Error('raw.githubusercontent.com '+r.status);
+    const parsed=await r.json();
+    DATA=parsed.items||parsed;
+    // We also need the SHA for saving — fetch it via API (no body, just metadata)
+    fetchSHA();
+    localStorage.setItem('harcowka_data', JSON.stringify({data:DATA, ts:Date.now()}));
+    document.getElementById('data-info').textContent=
+      `Arkusz 2-2025 · ${new Date().toLocaleDateString('pl')}`;
+    return true;
+  } catch(e){
+    console.warn('Raw fetch failed:', e.message);
+    // 2) Fallback: localStorage cache (offline)
+    const cached=localStorage.getItem('harcowka_data');
+    if(cached){
+      const{data,ts}=JSON.parse(cached);
+      DATA=data;
+      fileSHA=localStorage.getItem('harcowka_sha')||'';
+      document.body.classList.add('offline');
+      document.getElementById('data-info').textContent=
+        `Dane z ${new Date(ts).toLocaleDateString('pl')} (offline)`;
+      return true;
+    }
+    // 3) Hardcoded fallback
+    DATA=FALLBACK_DATA;
+    document.getElementById('data-info').textContent='Dane wbudowane (skonfiguruj GitHub)';
+    showConfigBanner();
+    return false;
+  }
+}
+
+async function fetchSHA(){
+  // Fetch SHA separately (needed only for saving) — silent, non-blocking
+  try{
+    const headers={'Accept':'application/vnd.github.v3+json'};
+    if(githubToken) headers['Authorization']=`token ${githubToken}`;
+    const r=await fetch(
+      `https://api.github.com/repos/${CONFIG.GITHUB_REPO}/contents/${CONFIG.DATA_FILE}`,
+      {headers}
+    );
+    if(r.ok){ const j=await r.json(); fileSHA=j.sha; localStorage.setItem('harcowka_sha',fileSHA); }
+  } catch(e){ fileSHA=localStorage.getItem('harcowka_sha')||''; }
+}
+
+async function saveData(){
+  if(!githubToken){
+    toast('❌ Brak tokenu GitHub — wpisz token w ustawieniach');
+    return false;
+  }
+  const url=`https://api.github.com/repos/${CONFIG.GITHUB_REPO}/contents/${CONFIG.DATA_FILE}`;
+  const content=btoa(unescape(encodeURIComponent(JSON.stringify({items:DATA},null,2))));
+  const body={message:`[inwentarz] aktualizacja ${new Date().toLocaleString('pl')}`,content,sha:fileSHA};
+  document.getElementById('sync-indicator').style.display='block';
+  try{
+    const r=await fetch(url,{
+      method:'PUT',headers:{'Authorization':`token ${githubToken}`,'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(!r.ok) throw new Error(await r.text());
+    const j=await r.json();
+    fileSHA=j.content.sha;
+    localStorage.setItem('harcowka_data',JSON.stringify({data:DATA,ts:Date.now()}));
+    localStorage.setItem('harcowka_sha',fileSHA);
+    toast('✅ Zapisano! GitHub Pages zaktualizuje się za ~30 sek.');
+    return true;
+  } catch(e){
+    toast('❌ Błąd zapisu: '+e.message, 4000);
+    return false;
+  } finally{
+    document.getElementById('sync-indicator').style.display='none';
+  }
+}
+
+function showConfigBanner(){
+  const b=document.createElement('div');
+  b.className='config-banner show';
+  b.innerHTML=`⚠️ <strong>Skonfiguruj połączenie z GitHub</strong> — kliknij ⚙️ Edytuj → Ustawienia i wpisz dane repozytorium oraz token.`;
+  document.getElementById('main').prepend(b);
+}
+
+// ── SIDEBAR / MOBILE ──────────────────────────────────
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// ── LIST ──────────────────────────────────────────────
+function renderList(q='',filter='all'){
+  q=q.toLowerCase().trim();
+  const list=document.getElementById('item-list');
+  list.innerHTML='';
+  let n=0;
+  const sorted=[...DATA].sort((a,b)=>a.name.localeCompare(b.name,'pl'));
+  for(const it of sorted){
+    if(filter!=='all'&&it.strefa!==filter)continue;
+    if(q&&!it.name.toLowerCase().includes(q)&&!it.lok.toLowerCase().includes(q))continue;
+    n++;
+    const div=document.createElement('div');
+    div.className='item-entry'+(it.lp===activeId?' active':'');
+    div.dataset.id=it.lp;
+    div.innerHTML=`<div class="zone-pill" style="background:${zc(it.strefa)}">${it.strefa}</div>
+      <div class="item-info">
+        <div class="iname">${it.name}</div>
+        <div class="imeta">📍 ${it.lok}${it.ile?' · 📦 '+it.ile+' szt.':''}</div>
+      </div>`;
+    div.addEventListener('click',()=>{selectItem(it.lp);closeSidebar()});
+    list.appendChild(div);
+  }
+  if(!n)list.innerHTML='<div class="no-res">Brak wyników</div>';
+  document.getElementById('count-badge').textContent=n+' poz.';
+}
+
+function selectItem(id){
+  activeId=id;
+  document.querySelectorAll('.item-entry').forEach(el=>el.classList.toggle('active',el.dataset.id===id));
+  const it=DATA.find(x=>x.lp===id);
+  if(it)renderDetail(it);
+}
+
+function renderDetail(it){
+  const color=zc(it.strefa);
+  const zi=ZONES[it.strefa]||{};
+  const trail=it.lok.split('/').map((s,i,a)=>
+    `<span class="lok-seg" style="background:${color}">${s}</span>`+(i<a.length-1?'<span class="lok-arrow">›</span>':'')
+  ).join('');
+  document.getElementById('main').innerHTML=`
+    <div class="detail-card">
+      <div class="dc-header" style="background:linear-gradient(135deg,${color},${color}bb)">
+        <div class="dc-icon">${ico(it.name)}</div>
+        <div class="dc-title">
+          <div class="dname">${it.name}</div>
+          <div class="dlp">Nr ${it.lp} · ${zi.label||''} — ${zi.desc||''}</div>
+        </div>
+      </div>
+      <div class="dc-body">
+        <div class="info-chips">
+          <div class="chip"><span class="ci">📍</span><div><span class="clbl">Lokalizacja</span><span class="cval" style="color:${color}">${it.lok}</span></div></div>
+          <div class="chip"><span class="ci">📦</span><div><span class="clbl">Ilość</span><span class="cval">${it.ile||'—'}</span></div></div>
+          <div class="chip"><span class="ci">${zi.icon||'🗂️'}</span><div><span class="clbl">Strefa</span><span class="cval" style="color:${color}">${it.strefa}</span></div></div>
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:10px;color:#888;margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px">Ścieżka lokalizacji</div>
+          <div class="lok-trail">${trail}</div>
+        </div>
+        ${it.uwagi?`<div class="uwagi-box"><span style="font-size:15px">💬</span><div><strong>Uwagi:</strong> ${it.uwagi}</div></div>`:''}
+        ${adminUnlocked?`<div class="detail-actions">
+          <button class="btn btn-edit" onclick="openEditItem('${it.lp}')">✏️ Edytuj</button>
+          <button class="btn btn-del" onclick="deleteItem('${it.lp}')">🗑️ Usuń</button>
+        </div>`:''}
+      </div>
+    </div>`;
+}
+
+function renderOverview(){
+  const total=DATA.length;
+  const wQ=DATA.filter(d=>d.ile&&parseInt(d.ile)>0).length;
+  const wN=DATA.filter(d=>d.uwagi).length;
+  const stats=[
+    {v:total,l:'📦 Pozycji',c:'#2D6A4F'},{v:wQ,l:'🔢 Z ilością',c:'#2980B9'},
+    {v:wN,l:'💬 Z uwagami',c:'#E67E22'},{v:6,l:'🗂️ Stref',c:'#8E44AD'},
+  ].map(s=>`<div class="scard" style="border-top-color:${s.c}"><div class="sv" style="color:${s.c}">${s.v}</div><div class="sl">${s.l}</div></div>`).join('');
+
+  const zones=Object.entries(ZONES).map(([z,info])=>{
+    const items=DATA.filter(d=>d.strefa===z);
+    return `<div class="zone-card" style="border-left-color:${info.color}" onclick="filterByZone('${z}')">
+      <h3 style="color:${info.color}">${info.icon} ${info.label} <small style="font-weight:400;color:#aaa">${items.length}</small></h3>
+      <div class="zdesc">${info.desc}</div>
+      ${items.slice(0,3).map(it=>`<div class="zip">• ${it.name}${it.ile?' ×'+it.ile:''}</div>`).join('')}
+      ${items.length>3?`<div style="font-size:10px;color:${info.color};margin-top:4px">+ ${items.length-3} więcej →</div>`:''}
+    </div>`;
+  }).join('');
+
+  const rows=DATA.map((it,i)=>`<tr class="${i%2?'':'alt'}" onclick="selectItem('${it.lp}')">
+    <td style="color:#aaa;font-size:10px">${it.lp}</td>
+    <td><b>${it.name}</b></td>
+    <td style="text-align:center;font-weight:700;color:var(--dk)">${it.ile||'—'}</td>
+    <td style="font-family:monospace;font-size:11px;font-weight:600;color:${zc(it.strefa)}">${it.lok}</td>
+    <td><span style="background:${zc(it.strefa)};color:#fff;padding:1px 6px;border-radius:5px;font-size:10px;font-weight:700">${it.strefa}</span></td>
+    ${adminUnlocked?`<td><button style="padding:2px 8px;border-radius:5px;border:none;background:var(--dk);color:#fff;font-size:10px;cursor:pointer" onclick="event.stopPropagation();openEditItem('${it.lp}')">✏️</button></td>`:''}
+  </tr>`).join('');
+
+  document.getElementById('main').innerHTML=`
+    <div class="overview">
+      <div class="main-tabs">
+        <button class="mtab active" onclick="switchTab('ov',this)">📊 Przegląd</button>
+        <button class="mtab" onclick="switchTab('tb',this)">📋 Tabela</button>
+        ${adminUnlocked?`<button class="mtab" onclick="openAddItem()" style="margin-left:auto;color:var(--dk)">＋ Dodaj pozycję</button>`:''}
+      </div>
+      <div id="tab-ov" class="tab-pane active">
+        <h2>Inwentarz Harcówki IV SH</h2>
+        <div class="sub">Arkusz nr 2-2025 · dotknij strefę aby filtrować${adminUnlocked?' · <span style="color:var(--lg);font-weight:600">🔓 tryb edycji aktywny</span>':''}</div>
+        <div class="stats-grid">${stats}</div>
+        <div class="zones-grid">${zones}</div>
+      </div>
+      <div id="tab-tb" class="tab-pane">
+        <div style="overflow-x:auto">
+        <table class="inv-table">
+          <thead><tr><th>Nr</th><th>Przedmiot</th><th>Ilość</th><th>Lokalizacja</th><th>Strefa</th>${adminUnlocked?'<th></th>':''}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </div>
+    </div>`;
+}
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id)?.classList.add('active');
+  btn.classList.add('active');
+}
+function filterByZone(z){
+  activeFilter=z;activeId=null;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.fbtn[data-z="${z}"]`)?.classList.add('active');
+  renderList(document.getElementById('search').value,z);
+  renderOverview();
+}
+
+// ── ADMIN PANEL ───────────────────────────────────────
+function openAdmin(){
+  if(!adminUnlocked){
+    showLoginModal();
+  } else {
+    showAdminMenu();
+  }
+}
+
+function showLoginModal(){
+  const bg=document.getElementById('modal-bg');
+  const m=document.getElementById('modal');
+  m.innerHTML=`
+    <div class="modal-header">
+      <h2>🔐 Panel edycji</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="login-form">
+      <div class="lock">🔒</div>
+      <h3>Wprowadź hasło</h3>
+      <p>Dostęp do edycji inwentarza jest chroniony hasłem</p>
+      <input type="password" id="pwd-input" placeholder="••••••••" autofocus
+        onkeydown="if(event.key==='Enter')checkPwd()"/>
+      <button class="btn-primary" style="width:100%;padding:11px" onclick="checkPwd()">Zaloguj</button>
+      <div class="err" id="pwd-err">❌ Nieprawidłowe hasło</div>
+    </div>`;
+  bg.classList.add('open');
+  setTimeout(()=>m.querySelector('#pwd-input')?.focus(),100);
+}
+
+function checkPwd(){
+  const val=document.getElementById('pwd-input').value;
+  if(val===CONFIG.ADMIN_PASSWORD){
+    adminUnlocked=true;
+    closeModal();
+    // Ask for GitHub token if not stored
+    githubToken=localStorage.getItem('github_token')||'';
+    if(!githubToken) showTokenModal();
+    else { toast('🔓 Tryb edycji aktywny'); renderOverview(); }
+  } else {
+    document.getElementById('pwd-err').style.display='block';
+    document.getElementById('pwd-input').value='';
+    document.getElementById('pwd-input').focus();
+  }
+}
+
+function showTokenModal(){
+  const bg=document.getElementById('modal-bg');
+  const m=document.getElementById('modal');
+  m.innerHTML=`
+    <div class="modal-header">
+      <h2>🔑 Token GitHub</h2>
+      <button class="modal-close" onclick="closeModal();renderOverview()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:#666;margin-bottom:16px;line-height:1.6">
+        Aby zapisywać zmiany do GitHub, potrzebujesz <strong>Personal Access Token</strong>.<br>
+        GitHub → Settings → Developer Settings → Personal access tokens → Fine-grained → 
+        uprawnienie <code>Contents: Read & Write</code> dla Twojego repozytorium.
+      </p>
+      <div class="form-row">
+        <label>Token GitHub</label>
+        <input type="password" id="token-input" placeholder="github_pat_..." />
+      </div>
+      <label style="font-size:11px;color:#888;display:flex;align-items:center;gap:6px;margin-bottom:14px">
+        <input type="checkbox" id="save-token" checked>
+        Zapamiętaj token w tej przeglądarce
+      </label>
+      <p style="font-size:11px;color:#e67e22;background:#fff8e1;padding:8px 10px;border-radius:6px">
+        ⚠️ Token jest przechowywany tylko w Twojej przeglądarce (localStorage), nie wysyłamy go nigdzie poza GitHub API.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal();renderOverview()">Pomiń (tylko podgląd)</button>
+      <button class="btn-primary" onclick="saveToken()">Zapisz token</button>
+    </div>`;
+  bg.classList.add('open');
+}
+
+function saveToken(){
+  const t=document.getElementById('token-input').value.trim();
+  if(!t){toast('❌ Wpisz token');return}
+  githubToken=t;
+  if(document.getElementById('save-token').checked) localStorage.setItem('github_token',t);
+  closeModal();
+  toast('✅ Token zapisany');
+  renderOverview();
+}
+
+function showAdminMenu(){
+  const bg=document.getElementById('modal-bg');
+  const m=document.getElementById('modal');
+  m.innerHTML=`
+    <div class="modal-header">
+      <h2>⚙️ Panel edycji</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <button class="btn-primary" style="padding:12px;font-size:13px" onclick="closeModal();openAddItem()">
+          ＋ Dodaj pozycję
+        </button>
+        <button class="btn-secondary" style="padding:12px;font-size:13px" onclick="closeModal();fetchData().then(()=>{renderList(document.getElementById('search').value,activeFilter);renderOverview();toast('🔄 Dane odświeżone')})">
+          🔄 Odśwież dane
+        </button>
+        <button class="btn-secondary" style="padding:12px;font-size:13px" onclick="showTokenModal()">
+          🔑 Zmień token
+        </button>
+        <button class="btn-secondary" style="padding:12px;font-size:13px;color:#c0392b" onclick="logout()">
+          🔒 Wyloguj
+        </button>
+      </div>
+      <div style="font-size:11px;color:#888;background:var(--gl);padding:10px;border-radius:8px">
+        <strong>Repo:</strong> ${CONFIG.GITHUB_REPO}<br>
+        <strong>Token:</strong> ${githubToken?'✅ skonfigurowany':'❌ brak'}<br>
+        <strong>Pozycji:</strong> ${DATA.length}
+      </div>
+    </div>`;
+  bg.classList.add('open');
+}
+
+function logout(){
+  adminUnlocked=false;
+  closeModal();
+  toast('🔒 Wylogowano');
+  renderOverview();
+}
+
+// ── ADD / EDIT ITEM ───────────────────────────────────
+function openAddItem(){
+  showItemForm(null);
+}
+function openEditItem(id){
+  const it=DATA.find(x=>x.lp===id);
+  showItemForm(it);
+}
+
+function showItemForm(it){
+  const isEdit=!!it;
+  const bg=document.getElementById('modal-bg');
+  const m=document.getElementById('modal');
+  const zoneOptions=Object.entries(ZONES).map(([z,info])=>
+    `<option value="${z}" ${it?.strefa===z?'selected':''}>${z} – ${info.desc}</option>`
+  ).join('');
+  // Generate next lp
+  const nextLp=isEdit?it.lp:String(Math.max(0,...DATA.map(d=>parseInt(d.lp)||0))+1);
+
+  m.innerHTML=`
+    <div class="modal-header">
+      <h2>${isEdit?'✏️ Edytuj pozycję':'＋ Nowa pozycja'}</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="f-lp" value="${it?.lp||nextLp}">
+      <div class="form-row">
+        <label>Nazwa przedmiotu *</label>
+        <input type="text" id="f-name" value="${it?.name||''}" placeholder="np. Kompasy" autofocus/>
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Strefa *</label>
+          <select id="f-strefa">${zoneOptions}</select>
+        </div>
+        <div class="form-row">
+          <label>Lokalizacja *</label>
+          <input type="text" id="f-lok" value="${it?.lok||''}" placeholder="np. C/3/PR3"/>
+        </div>
+        <div class="form-row">
+          <label>Ilość</label>
+          <input type="text" id="f-ile" value="${it?.ile||''}" placeholder="np. 11"/>
+        </div>
+        <div class="form-row">
+          <label>Nr inwentarzowy</label>
+          <input type="text" id="f-lp2" value="${it?.lp||nextLp}"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Uwagi</label>
+        <textarea id="f-uwagi" placeholder="dodatkowe informacje…">${it?.uwagi||''}</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      ${isEdit?`<button class="btn-danger" onclick="deleteItem('${it.lp}')">🗑️ Usuń</button>`:''}
+      <button class="btn-secondary" onclick="closeModal()">Anuluj</button>
+      <button class="btn-primary" onclick="saveItem(${isEdit})">💾 Zapisz</button>
+    </div>`;
+  bg.classList.add('open');
+}
+
+async function saveItem(isEdit){
+  const lp=document.getElementById('f-lp2').value.trim()||document.getElementById('f-lp').value;
+  const name=document.getElementById('f-name').value.trim();
+  const strefa=document.getElementById('f-strefa').value;
+  const lok=document.getElementById('f-lok').value.trim();
+  const ile=document.getElementById('f-ile').value.trim();
+  const uwagi=document.getElementById('f-uwagi').value.trim();
+  if(!name||!lok){toast('❌ Wypełnij nazwę i lokalizację');return}
+
+  const item={lp,name,strefa,lok,ile,uwagi};
+  if(isEdit){
+    const idx=DATA.findIndex(x=>x.lp===document.getElementById('f-lp').value);
+    if(idx>=0) DATA[idx]=item;
+  } else {
+    DATA.push(item);
+  }
+
+  closeModal();
+  const ok=await saveData();
+  if(ok){
+    activeId=lp;
+    renderList(document.getElementById('search').value,activeFilter);
+    renderDetail(item);
+  }
+}
+
+async function deleteItem(id){
+  if(!confirm('Usunąć tę pozycję z inwentarza?'))return;
+  DATA=DATA.filter(x=>x.lp!==id);
+  closeModal();
+  activeId=null;
+  const ok=await saveData();
+  if(ok){
+    renderList(document.getElementById('search').value,activeFilter);
+    renderOverview();
+  }
+}
+
+function closeModal(){
+  document.getElementById('modal-bg').classList.remove('open');
+}
+// Close on background click
+document.getElementById('modal-bg').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modal-bg')) closeModal();
+});
+
+// ── INIT ──────────────────────────────────────────────
+document.getElementById('search').addEventListener('input',e=>renderList(e.target.value,activeFilter));
+document.querySelectorAll('.fbtn').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter=btn.dataset.z; activeId=null;
+  renderList(document.getElementById('search').value,activeFilter);
+  renderOverview();
+}));
+
+// Restore token
+githubToken=localStorage.getItem('github_token')||'';
+
+// Load data then render
+fetchData().then(()=>{
+  renderList('','all');
+  renderOverview();
+});
+
+// ── FALLBACK DATA (gdy GitHub niedostępny) ────────────
+const FALLBACK_DATA=[{"lp":"1","name":"Książka \"Harcerstwo to Gra\"","ile":"4","lok":"A/2PR4","uwagi":"","strefa":"A"},{"lp":"2","name":"Śpiewniki \"Ognik\"","ile":"7","lok":"A/2PR4","uwagi":"","strefa":"A"},{"lp":"3","name":"ScoutBook Sprawności","ile":"5","lok":"A/2PR4","uwagi":"","strefa":"A"},{"lp":"4","name":"Gry planszowe","ile":"","lok":"A/3","uwagi":"","strefa":"A"},{"lp":"5","name":"Kronika 5GZ","ile":"1","lok":"A/1","uwagi":"","strefa":"A"},{"lp":"6","name":"Kronika 22KDH","ile":"1","lok":"A/1","uwagi":"","strefa":"A"},{"lp":"7","name":"Książeczka zucha","ile":"","lok":"A/2PR4","uwagi":"ochoczego, zaradnego, sprawnego - do policzenia","strefa":"A"},{"lp":"8","name":"HarcTimeLine","ile":"","lok":"A/3","uwagi":"","strefa":"A"},{"lp":"9","name":"Śpiewnik \"55 piosenek\"","ile":"9","lok":"A/2PR4","uwagi":"","strefa":"A"},{"lp":"10","name":"Książki, magazyny i czasopisma","ile":"","lok":"A/2","uwagi":"historyczne, harcerskie itp.","strefa":"A"},{"lp":"11","name":"Arkusze papierowe 50x70cm","ile":"","lok":"A/4","uwagi":"","strefa":"A"},{"lp":"12","name":"Papier kolorowy","ile":"","lok":"B/1","uwagi":"A4, A3","strefa":"B"},{"lp":"13","name":"Papier biały","ile":"","lok":"B/1","uwagi":"A4, A3","strefa":"B"},{"lp":"14","name":"Długopisy, markery, ołówki","ile":"","lok":"B/2/PP1","uwagi":"","strefa":"B"},{"lp":"15","name":"Nożyczki","ile":"","lok":"B/2/PP1","uwagi":"","strefa":"B"},{"lp":"16","name":"Pinezki, spinacze, klipsy itp.","ile":"","lok":"B/2/PP1","uwagi":"","strefa":"B"},{"lp":"17","name":"Gumki do gumowania","ile":"","lok":"B/2/PP1","uwagi":"","strefa":"B"},{"lp":"18","name":"Gumki recepturki","ile":"","lok":"B/2/PP1","uwagi":"","strefa":"B"},{"lp":"19","name":"Kleje","ile":"","lok":"B/2/PP1","uwagi":"","strefa":"B"},{"lp":"20","name":"Taśmy klejące","ile":"","lok":"B/2/PP1","uwagi":"liczone razem z malarskimi","strefa":"B"},{"lp":"21","name":"Ostrzałki","ile":"","lok":"B/2/PP1","uwagi":"","strefa":"B"},{"lp":"22","name":"Akcesoria do whiteboarda","ile":"","lok":"B/2","uwagi":"karton \"whiteboard\"","strefa":"B"},{"lp":"23","name":"Notatniki/zeszyty","ile":"","lok":"B/2","uwagi":"","strefa":"B"},{"lp":"24","name":"Karteczki samoprzylepne","ile":"","lok":"B/2","uwagi":"","strefa":"B"},{"lp":"25","name":"Klej w sprayu","ile":"1","lok":"B/2/PP1","uwagi":"","strefa":"B"},{"lp":"26","name":"Płótna 30×40 cm","ile":"9","lok":"B/3","uwagi":"","strefa":"B"},{"lp":"27","name":"Farby (kolorowe, plakatowe)","ile":"","lok":"B/3/PF1","uwagi":"kolorowe, plakatowe","strefa":"B"},{"lp":"28","name":"Farby","ile":"","lok":"B/3/PF1","uwagi":"","strefa":"B"},{"lp":"29","name":"Materiały plastyczne (juta)","ile":"","lok":"B/4","uwagi":"karton \"juta\"","strefa":"B"},{"lp":"30","name":"Materiały plastyczne (juta) – zestaw","ile":"1","lok":"B/4","uwagi":"karton \"juta\"","strefa":"B"},{"lp":"31","name":"Materiały plastyczne","ile":"","lok":"B/4","uwagi":"","strefa":"B"},{"lp":"32","name":"Materiały plastyczne (dodatkowe)","ile":"","lok":"B/4","uwagi":"","strefa":"B"},{"lp":"33","name":"Lornetki","ile":"10","lok":"C/3/PR3","uwagi":"","strefa":"C"},{"lp":"34","name":"Kompasy","ile":"11","lok":"C/3/PR3","uwagi":"","strefa":"C"},{"lp":"35","name":"Zestawy kartograficzne","ile":"6","lok":"C/3/PR3","uwagi":"","strefa":"C"},{"lp":"36","name":"Farby do twarzy","ile":"7","lok":"C/3/PR3","uwagi":"","strefa":"C"},{"lp":"37","name":"Kamizelki odblaskowe","ile":"2","lok":"C/3/PR2","uwagi":"","strefa":"C"},{"lp":"38","name":"Skrytki geocaching","ile":"","lok":"C/3/PR2","uwagi":"","strefa":"C"},{"lp":"39","name":"Lightsticki","ile":"","lok":"C/3/PR2","uwagi":"","strefa":"C"},{"lp":"40","name":"Ślady zwierząt","ile":"1","lok":"C/3/PR2","uwagi":"zestaw","strefa":"C"},{"lp":"41","name":"Mapy","ile":"","lok":"A/3","uwagi":"do przejrzenia","strefa":"A"},{"lp":"42","name":"Clipboardy terenowe","ile":"1","lok":"C/3","uwagi":"własne opakowanie","strefa":"C"},{"lp":"43","name":"Flagi sygnalizacyjne biel-czerwień","ile":"2","lok":"C/3","uwagi":"","strefa":"C"},{"lp":"44","name":"Flagi sygnalizacyjne żółte","ile":"2","lok":"C/3/PR2","uwagi":"","strefa":"C"},{"lp":"45","name":"Paracord","ile":"","lok":"C/4/PR1","uwagi":"","strefa":"C"},{"lp":"46","name":"Sznurki jutowe","ile":"","lok":"C/4/PR1","uwagi":"","strefa":"C"},{"lp":"47","name":"Tracze strzeleckie","ile":"10","lok":"C/4/PR6","uwagi":"","strefa":"C"},{"lp":"48","name":"Okulary ochronne","ile":"5","lok":"C/4/PR6","uwagi":"","strefa":"C"},{"lp":"49","name":"Pistolety ASG","ile":"6","lok":"C/4/PR6","uwagi":"","strefa":"C"},{"lp":"50","name":"Kulki ASG","ile":"","lok":"C/4/PR6","uwagi":"0,7 kg","strefa":"C"},{"lp":"51","name":"Proca","ile":"2","lok":"C/4/PR6","uwagi":"","strefa":"C"},{"lp":"52","name":"Slackline","ile":"1","lok":"C/4/PR6","uwagi":"lina i naciągacz / osobno","strefa":"C"},{"lp":"53","name":"Kij do palanta","ile":"1","lok":"C/4","uwagi":"tył szafy","strefa":"C"},{"lp":"54","name":"Łuki","ile":"2","lok":"C/4","uwagi":"tył szafy","strefa":"C"},{"lp":"55","name":"Strzały ostre","ile":"2","lok":"C/4","uwagi":"tył szafy","strefa":"C"},{"lp":"56","name":"Strzały gumowe","ile":"2","lok":"C/4","uwagi":"tył szafy","strefa":"C"},{"lp":"57","name":"Nóż do rzucania","ile":"2","lok":"C/4/PR6","uwagi":"","strefa":"C"},{"lp":"58","name":"Piłki","ile":"","lok":"D/1","uwagi":"żółty worek / w środku pompki","strefa":"D"},{"lp":"59","name":"Kręgle plastikowe","ile":"","lok":"D/1","uwagi":"","strefa":"D"},{"lp":"60","name":"Gra \"Lider\"","ile":"1","lok":"D/2","uwagi":"","strefa":"D"},{"lp":"61","name":"Kręgle szwedzkie","ile":"1","lok":"D/2","uwagi":"","strefa":"D"},{"lp":"62","name":"Rakiety do badmintona","ile":"4","lok":"D/2","uwagi":"lotki w PR5","strefa":"D"},{"lp":"63","name":"Pachołki sportowe","ile":"4","lok":"D/1","uwagi":"","strefa":"D"},{"lp":"64","name":"Rakiety do pseudo tenisa","ile":"2","lok":"D/2","uwagi":"piłka w PR5","strefa":"D"},{"lp":"65","name":"Frisbee","ile":"1","lok":"D/1/PS1","uwagi":"","strefa":"D"},{"lp":"66","name":"Tamburyn","ile":"3","lok":"D/1/PS1","uwagi":"","strefa":"D"},{"lp":"67","name":"Paletki do tenisa stołowego","ile":"4","lok":"D/1/PS1","uwagi":"piłka w PR5","strefa":"D"},{"lp":"69","name":"Klakson","ile":"1","lok":"D/1/PS1","uwagi":"","strefa":"D"},{"lp":"70","name":"Klakson kurczak","ile":"1","lok":"D/1/PS1","uwagi":"","strefa":"D"},{"lp":"71","name":"Dłutki do drewna","ile":"","lok":"D/3/PR5","uwagi":"","strefa":"D"},{"lp":"72","name":"Przybory do szycia","ile":"","lok":"D/3/PR5","uwagi":"","strefa":"D"},{"lp":"73","name":"Niteczki i nitki","ile":"","lok":"D/3/PR5","uwagi":"","strefa":"D"},{"lp":"74","name":"Druty zielone","ile":"3","lok":"D/3/PR5","uwagi":"","strefa":"D"},{"lp":"75","name":"Zawieszki do szycia","ile":"","lok":"D/3","uwagi":"","strefa":"D"},{"lp":"76","name":"Tasiemki","ile":"","lok":"D/3","uwagi":"","strefa":"D"},{"lp":"77","name":"Materiały do szycia","ile":"","lok":"D/4","uwagi":"","strefa":"D"},{"lp":"78","name":"Wełna","ile":"7","lok":"D/4","uwagi":"","strefa":"D"},{"lp":"79","name":"Balony","ile":"","lok":"D/3","uwagi":"","strefa":"D"},{"lp":"80","name":"Kreda","ile":"","lok":"B/3","uwagi":"","strefa":"B"},{"lp":"81","name":"Proporce","ile":"","lok":"E/4","uwagi":"","strefa":"E"},{"lp":"82","name":"Nakrycia głowy","ile":"","lok":"E/3","uwagi":"","strefa":"E"},{"lp":"83","name":"Pasy i wywijki","ile":"","lok":"E/3","uwagi":"","strefa":"E"},{"lp":"84","name":"Mundury, spódnice, spodnie","ile":"","lok":"E/2","uwagi":"","strefa":"E"},{"lp":"85","name":"Koszulki, bluzy, worki szczepu","ile":"","lok":"E/2","uwagi":"","strefa":"E"},{"lp":"86","name":"Spódnice (50 lat)","ile":"","lok":"E/1","uwagi":"","strefa":"E"},{"lp":"87","name":"Obrusy, zasłony","ile":"","lok":"E/1","uwagi":"","strefa":"E"},{"lp":"88","name":"Talerze papierowe","ile":"","lok":"F/1","uwagi":"akcje zarobkowe","strefa":"F"},{"lp":"89","name":"Kubki papierowe","ile":"","lok":"F/2","uwagi":"akcje zarobkowe","strefa":"F"},{"lp":"90","name":"Sztućce papierowe/kartonowe","ile":"","lok":"F/3","uwagi":"akcje zarobkowe","strefa":"F"},{"lp":"91","name":"Serwetki","ile":"","lok":"F/4","uwagi":"akcje zarobkowe","strefa":"F"},{"lp":"92","name":"Obrusy papierowe","ile":"2","lok":"F/3","uwagi":"akcje zarobkowe","strefa":"F"}];
+</script>
+</body>
+</html>
